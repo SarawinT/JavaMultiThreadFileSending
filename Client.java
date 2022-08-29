@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Date;
 import java.util.Scanner;
 
 public class Client {
@@ -7,7 +8,6 @@ public class Client {
     private static final String HOST_NAME = "localhost";
     private static final int PORT_NUMBER = 8080;
     private static final int BUFFER_SIZE = 16 * 4096;
-    private static final int THREAD_NUMBER = 9;
 
     private static Socket s;
     private static String[] fileList;
@@ -31,51 +31,27 @@ public class Client {
     }
 
     private static void receiveFile() throws Exception {
+        Date date = new Date();
+        long startTime = date.getTime();
+        
         String FILE_NAME = in.readUTF();
         int FILE_SIZE = in.readInt();
 
         System.out.println("Receiving File...");
         FileOutputStream fos = new FileOutputStream(FILE_NAME);
-        DataInputStream bis = new DataInputStream(s.getInputStream());
         byte[] bytes = new byte[BUFFER_SIZE];
-        System.out.println("BYTE SIZE : " + bytes.length);
         int count = FILE_SIZE;
         while (count > 0) {
-            int recieved = bis.read(bytes);
+            int recieved = in.read(bytes);
             count -= recieved;
             fos.write(bytes, 0, recieved);
         }
 
         fos.close();
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes]");
-    }
+        date = new Date();
+        long endTime = date.getTime();
 
-    private static void receiveFileThread() throws Exception {
-        String FILE_NAME = in.readUTF();
-        int FILE_SIZE = in.readInt();
-        final int SLICE_SIZE = FILE_SIZE / THREAD_NUMBER;
-
-        System.out.println("Receiving File...");
-        FileOutputStream fos = new FileOutputStream(FILE_NAME);
-        DataInputStream bis = new DataInputStream(s.getInputStream());
-        byte[] bytes = new byte[SLICE_SIZE + 1];
-        System.out.println("BYTE SIZE : " + bytes.length);
-        int count = FILE_SIZE;
-        // while (count > 0) {
-        // int recieved = bis.read(bytes);
-        // count -= recieved;
-        // System.out.println("| " + new String(bytes) + " | " + recieved);
-        // fos.write(bytes, 0, recieved-1);
-        // }
-
-        for (int i = 0; i < THREAD_NUMBER; i++) {
-            int recieved = bis.read(bytes);
-            System.out.println("| " + new String(bytes) + " | " + recieved);
-            fos.write(bytes, 0, recieved - 1);
-        }
-
-        fos.close();
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes]");
+        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime-startTime) + " ms");
     }
 
     public static void main(String[] args) {
@@ -113,6 +89,8 @@ public class Client {
         } catch (Exception e) {
             if (e.getMessage().equals("Connection reset")) {
                 System.err.println("Connection from " + HOST_NAME + "is reset" + e);
+            } else {
+                System.out.println(e);
             }
         }
     }
@@ -123,12 +101,12 @@ public class Client {
 
     private static void printFileList() {
         System.out.println();
-        System.out.println(" ┌── Select a file to download ──┒");
+        System.out.println(" --- Select a file to download ---");
         for (int i = 0; i < fileList.length; i++) {
-            System.out.println(" │ [" + (i + 1) + "] - " + fileList[i]);
+            System.out.println("  [" + (i + 1) + "] - " + fileList[i]);
         }
-        System.out.println(" │ [0] - Exit");
-        System.out.println(" └───────────────────────────────┚");
+        System.out.println("  [0] - Exit");
+        System.out.println(" ---------------------------------");
     }
 
 }

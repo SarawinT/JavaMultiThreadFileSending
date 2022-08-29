@@ -1,4 +1,4 @@
 /.vscode
-/Outputtest.txt
-/OutputtestP.pdf
+/test.txt
+/testP.pdf
 ./build/*
