@@ -1,4 +1,7 @@
-/.vscode
-/test.txt
-/testP.pdf
-./build/*
+*
+
+!./build
+!./resources
+!.gitignore
+!Client.java
+!Server.java
