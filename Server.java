@@ -103,7 +103,7 @@ class ClientHandler extends Thread {
             File file = new File(FILE_STORAGE + fileName);
             FileInputStream fin = new FileInputStream(file);
             out.writeUTF(fileName);
-            out.writeInt((int) file.length());
+            out.writeLong(file.length());
             Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + s.getInetAddress());
             
             final int FILE_SIZE = (int) file.length();

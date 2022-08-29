@@ -14,33 +14,17 @@ public class Client {
     private static DataOutputStream out;
     private static DataInputStream in;
 
-    class ByteReader extends Thread {
-
-        private int i;
-
-        ByteReader(int i) {
-            this.i = i;
-        }
-
-        @Override
-        public void run() {
-            // TODO Auto-generated method stub
-            super.run();
-        }
-
-    }
-
     private static void receiveFile() throws Exception {
         Date date = new Date();
         long startTime = date.getTime();
         
         String FILE_NAME = in.readUTF();
-        int FILE_SIZE = in.readInt();
+        Long FILE_SIZE = in.readLong();
 
         System.out.println("Receiving File...");
         FileOutputStream fos = new FileOutputStream(FILE_NAME);
         byte[] bytes = new byte[BUFFER_SIZE];
-        int count = FILE_SIZE;
+        long count = FILE_SIZE;
         while (count > 0) {
             int recieved = in.read(bytes);
             count -= recieved;
