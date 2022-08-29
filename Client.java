@@ -1,19 +1,87 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Date;
+import java.util.Scanner;
 
 public class Client {
 
-    public static final String HOST_NAME = "localhost";
-    public static final int PORT_NUMBER = 8080;
+    private static final String HOST_NAME = "localhost";
+    private static final int PORT_NUMBER = 8080;
+    private static final int BUFFER_SIZE = 16 * 4096;
+
+    private static Socket s;
+    private static String[] fileList;
+    private static DataOutputStream out;
+    private static DataInputStream in;
+
+    class ByteReader extends Thread {
+
+        private int i;
+
+        ByteReader(int i) {
+            this.i = i;
+        }
+
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            super.run();
+        }
+
+    }
+
+    private static void receiveFile() throws Exception {
+        Date date = new Date();
+        long startTime = date.getTime();
+        
+        String FILE_NAME = in.readUTF();
+        int FILE_SIZE = in.readInt();
+
+        System.out.println("Receiving File...");
+        FileOutputStream fos = new FileOutputStream(FILE_NAME);
+        byte[] bytes = new byte[BUFFER_SIZE];
+        int count = FILE_SIZE;
+        while (count > 0) {
+            int recieved = in.read(bytes);
+            count -= recieved;
+            fos.write(bytes, 0, recieved);
+        }
+
+        fos.close();
+        date = new Date();
+        long endTime = date.getTime();
+
+        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime-startTime) + " ms");
+    }
 
     public static void main(String[] args) {
 
         try {
-            Socket ss = new Socket(HOST_NAME, PORT_NUMBER);
-            ClientInput in = new ClientInput(ss);
-            in.start();
-            ClientOutput out = new ClientOutput(ss);
-            out.start();
+            s = new Socket(HOST_NAME, PORT_NUMBER);
+            Scanner scan = new Scanner(System.in);
+            in = new DataInputStream(s.getInputStream());
+            out = new DataOutputStream(s.getOutputStream());
+
+            String status = in.readUTF();
+            System.out.println(status);
+            String fileListStr = in.readUTF();
+            fileList = initFileList(fileListStr);
+            while (true) {
+                printFileList();
+                System.out.print("Enter input : ");
+                int index = scan.nextInt();
+                if (index == 0) {
+                    s.close();
+                    scan.close();
+                    break;
+                } else if (index <= fileList.length) {
+                    out.writeInt(index);
+                    receiveFile();
+                } else {
+                    System.out.println("!! Invalid File Number !!");
+                }
+
+            }
         } catch (IOException e) {
             System.err.println("Couldn't connect to " +
                     HOST_NAME + ":" + PORT_NUMBER);
@@ -21,105 +89,24 @@ public class Client {
         } catch (Exception e) {
             if (e.getMessage().equals("Connection reset")) {
                 System.err.println("Connection from " + HOST_NAME + "is reset" + e);
+            } else {
+                System.out.println(e);
             }
         }
     }
 
-}
-
-class ClientInput extends Thread {
-
-    private Socket s;
-    private final int BUFFER_SIZE = 16 * 4096;
-
-    public ClientInput(Socket socket) {
-        s = socket;
+    private static String[] initFileList(String fileListStr) {
+        return fileListStr.split("/");
     }
 
-    public void run() {
-        try {
-            InputStreamReader ir = new InputStreamReader(s.getInputStream());
-            BufferedReader in = new BufferedReader(ir);
-
-            String outputFromServer;
-            while ((outputFromServer = in.readLine()) != null) {
-
-                if (outputFromServer.contains("Sending File...")) {
-
-                    System.out.println("Receiving File...");
-
-                    String FILE_NAME = outputFromServer.substring(
-                            outputFromServer.indexOf("<file_name>") + "<file_name>".length(),
-                            outputFromServer.indexOf("</file_name>"));
-                    int FILE_SIZE = Integer.parseInt(
-                            outputFromServer.substring(outputFromServer.indexOf("<file_size>") + "<file_size>".length(),
-                                    outputFromServer.indexOf("</file_size>")));
-
-                    OutputStream os = new FileOutputStream(FILE_NAME);
-                    BufferedInputStream bis = new BufferedInputStream(s.getInputStream());
-                    byte[] bytes = new byte[BUFFER_SIZE];
-                    int count = FILE_SIZE;
-                    while (count > 0) {
-                        int recieved = bis.read(bytes);
-                        count -= recieved;
-                        // System.out.println(FILE_SIZE);
-                        os.write(bytes, 0, recieved);
-                    }
-                    os.close();
-                    System.out.println("File Recieved [" + FILE_SIZE + " bytes]");
-
-                } else {
-                    System.out.println(outputFromServer);
-                    outputFromServer = null;
-                }
-
-            }
-        } catch (IOException e) {
-            System.out.println("\n !! Socket Error !! " + e.getMessage());
-            System.exit(1);
-        } catch (Exception e) {
-            throw e;
+    private static void printFileList() {
+        System.out.println();
+        System.out.println(" --- Select a file to download ---");
+        for (int i = 0; i < fileList.length; i++) {
+            System.out.println("  [" + (i + 1) + "] - " + fileList[i]);
         }
-
-    }
-}
-
-class ClientOutput extends Thread {
-
-    private Socket s;
-    private final int DELAY_TIME = 200;
-
-    public ClientOutput(Socket socket) {
-        this.s = socket;
+        System.out.println("  [0] - Exit");
+        System.out.println(" ---------------------------------");
     }
 
-    public void run() {
-        try {
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader(System.in));
-            PrintWriter out = new PrintWriter(s.getOutputStream(), true);
-            String userInput;
-
-            while (true) {
-                Thread.sleep(DELAY_TIME);
-                System.out.print("Enter input : ");
-                userInput = br.readLine();
-
-                if (userInput.equalsIgnoreCase("X")) {
-                    System.exit(0);
-                }
-
-                if (userInput != null) {
-                    out.println(userInput);
-                }
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException ie) {
-            ie.printStackTrace();
-        } catch (Exception e) {
-            throw e;
-        }
-    }
 }
