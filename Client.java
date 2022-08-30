@@ -15,18 +15,21 @@ public class Client {
     private static DataInputStream in;
 
     private static void receiveFile() throws Exception {
+
         Date date = new Date();
         long startTime = date.getTime();
-        
+
         String FILE_NAME = in.readUTF();
-        Long FILE_SIZE = in.readLong();
+        long FILE_SIZE = in.readLong();
+
+        BufferedInputStream bis = new BufferedInputStream(in);
 
         System.out.println("Receiving File...");
         FileOutputStream fos = new FileOutputStream(FILE_NAME);
         byte[] bytes = new byte[BUFFER_SIZE];
         long count = FILE_SIZE;
         while (count > 0) {
-            int recieved = in.read(bytes);
+            int recieved = bis.read(bytes);
             count -= recieved;
             fos.write(bytes, 0, recieved);
         }
@@ -35,7 +38,7 @@ public class Client {
         date = new Date();
         long endTime = date.getTime();
 
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime-startTime) + " ms");
+        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime - startTime) + " ms");
     }
 
     public static void main(String[] args) {

@@ -14,12 +14,12 @@ public class Server {
         Logger.printLog("Server created at localhost:" + PORT_NUMBER);
 
         Socket s = null;
-
+        int clientNumber = 1;
         boolean isRunning = true;
         while (isRunning) {
             try {
                 s = ss.accept();
-                Thread t = new ClientHandler(s, s.getInputStream(), s.getOutputStream());
+                Thread t = new ClientHandler(s, s.getInputStream(), s.getOutputStream(), clientNumber++);
                 t.start();
             }
 
@@ -41,16 +41,19 @@ class ClientHandler extends Thread {
     private OutputStream os;
     private DataOutputStream out;
     private DataInputStream in;
+    private int clientNumber;
 
     private final String FILE_STORAGE = "./resources/";
     private final int THREAD_NUMBER = 9;
+    private final int BUFFER_SIZE = 16 * 4096;
 
     File[] fileList;
 
-    ClientHandler(Socket socket, InputStream is, OutputStream os) {
+    ClientHandler(Socket socket, InputStream is, OutputStream os, int clientNumber) {
         s = socket;
         this.is = is;
         this.os = os;
+        this.clientNumber = clientNumber;
         fileList = new File(FILE_STORAGE).listFiles();
     }
 
@@ -65,9 +68,8 @@ class ClientHandler extends Thread {
         @Override
         public void run() {
             try {
-                // out.writeInt(i);
-                // System.out.println(new String(b));
                 os.write(b);
+                b = null;
             } catch (Exception e) {
                 Logger.printLog(e);
             }
@@ -76,20 +78,19 @@ class ClientHandler extends Thread {
     }
 
     private boolean sendFile(String fileName) {
-        final int BUFFER_SIZE = 16 * 4096;
         try {
             File file = new File(FILE_STORAGE + fileName);
             InputStream fin = new FileInputStream(file);
             out.writeUTF(fileName);
-            out.writeInt((int) file.length());
-            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + s.getInetAddress());
+            out.writeLong(file.length());
+            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to Client " + clientNumber);
             byte[] bytes = new byte[BUFFER_SIZE];
             int count = 0;
             while ((count = fin.read(bytes)) > 0) {
                 out.write(bytes, 0, count);
             }
             fin.close();
-            Logger.printLog(fileName + " sent to " + socketAddress);
+            Logger.printLog(fileName + " has been sent to Client " + clientNumber);
             return true;
         } catch (Exception e) {
             Logger.printLog("!! Socket Error !! " + e.getMessage());
@@ -104,13 +105,13 @@ class ClientHandler extends Thread {
             FileInputStream fin = new FileInputStream(file);
             out.writeUTF(fileName);
             out.writeLong(file.length());
-            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + s.getInetAddress());
-            
-            final int FILE_SIZE = (int) file.length();
-            final int SLICE_SIZE = FILE_SIZE / THREAD_NUMBER;
-            final int LEFT_OVER = FILE_SIZE % THREAD_NUMBER;
-            
-            byte[] fileBytes = new byte[SLICE_SIZE];
+            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to Client " + clientNumber);
+
+            final long FILE_SIZE = file.length();
+            final long SLICE_SIZE = FILE_SIZE / THREAD_NUMBER;
+            final long LEFT_OVER = FILE_SIZE % THREAD_NUMBER;
+
+            byte[] fileBytes = new byte[(int) SLICE_SIZE];
 
             for (int i = 0; i < THREAD_NUMBER; i++) {
                 int read = fin.read(fileBytes);
@@ -125,19 +126,17 @@ class ClientHandler extends Thread {
                 byte[] b = new byte[read];
                 b = Arrays.copyOf(fileBytes, read);
                 Thread bs = new ByteSender(b);
-                bs.start();                
+                bs.start();
             }
 
             fin.close();
-            Logger.printLog(fileName + " sent to " + socketAddress);
+            Logger.printLog(fileName + " has been sent to Client " + clientNumber);
             return true;
         } catch (Exception e) {
             Logger.printLog("!! Socket Error !! " + e);
             return false;
         }
     }
-
-
 
     public void run() {
 
@@ -146,7 +145,7 @@ class ClientHandler extends Thread {
             out = new DataOutputStream(os);
             in = new DataInputStream(is);
 
-            Logger.printLog(socketAddress + " Connected");
+            Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Connected");
             out.writeUTF("Connected to server");
             out.writeUTF(getFileList());
 
@@ -162,10 +161,8 @@ class ClientHandler extends Thread {
             }
 
         } catch (IOException e) {
-            if (e.getMessage() == null) {
-                Logger.printLog(socketAddress + " Disconnected");
-            } else if (e.getMessage().equals("Connection reset")) {
-                Logger.printLog(socketAddress + " Disconnected");
+            if (e.getMessage() == null || e.getMessage().equals("Connection reset")) {
+                Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Disconnected");
             } else if (e.getMessage().equals("Socket closed")) {
                 Logger.printLog("Socket Disconnected");
             } else {
@@ -179,7 +176,6 @@ class ClientHandler extends Thread {
     }
 
     private String getFileList() {
-
         String str = "";
         for (File file : fileList) {
             str += file.getName() + "/";
