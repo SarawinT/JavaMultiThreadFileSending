@@ -57,6 +57,52 @@ class ClientHandler extends Thread {
         fileList = new File(FILE_STORAGE).listFiles();
     }
 
+    public void run() {
+
+        try {
+            socketAddress = s.getInetAddress().toString();
+            out = new DataOutputStream(os);
+            in = new DataInputStream(is);
+
+            Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Connected");
+            out.writeUTF("Connected to server");
+            out.writeUTF(getFileList());
+
+            int index = -1;
+
+            // Socket I/O Loop
+            while (true) {
+                index = in.readInt();
+                if (index <= fileList.length) {
+                    sendFile(fileList[index - 1].getName());
+                } else {
+                    Logger.printLog("Invalid file index");
+                }
+            }
+
+        } catch (IOException e) {
+            if (e.getMessage() == null || e.getMessage().equals("Connection reset")) {
+                Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Disconnected");
+            } else if (e.getMessage().equals("Socket closed")) {
+                Logger.printLog("Socket Disconnected");
+            } else {
+                Logger.printLog("Unhandled Exception > " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            Logger.printLog(e);
+        }
+
+    }
+
+    private String getFileList() {
+        String str = "";
+        for (File file : fileList) {
+            str += file.getName() + "/";
+        }
+        return str;
+    }
+
     class ByteSender extends Thread {
 
         private byte[] b;
@@ -68,7 +114,7 @@ class ClientHandler extends Thread {
         @Override
         public void run() {
             try {
-                os.write(b);
+                out.write(b);
                 b = null;
             } catch (Exception e) {
                 Logger.printLog(e);
@@ -136,51 +182,6 @@ class ClientHandler extends Thread {
             Logger.printLog("!! Socket Error !! " + e);
             return false;
         }
-    }
-
-    public void run() {
-
-        try {
-            socketAddress = s.getInetAddress().toString();
-            out = new DataOutputStream(os);
-            in = new DataInputStream(is);
-
-            Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Connected");
-            out.writeUTF("Connected to server");
-            out.writeUTF(getFileList());
-
-            int index = -1;
-
-            // Socket I/O Loop
-            while ((index = in.readInt()) != -1) {
-                if (index <= fileList.length) {
-                    sendFileThreaded(fileList[index - 1].getName());
-                } else {
-                    Logger.printLog("Invalid file index");
-                }
-            }
-
-        } catch (IOException e) {
-            if (e.getMessage() == null || e.getMessage().equals("Connection reset")) {
-                Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Disconnected");
-            } else if (e.getMessage().equals("Socket closed")) {
-                Logger.printLog("Socket Disconnected");
-            } else {
-                Logger.printLog("Unhandled Exception > " + e.getMessage());
-            }
-
-        } catch (Exception e) {
-            Logger.printLog(e);
-        }
-
-    }
-
-    private String getFileList() {
-        String str = "";
-        for (File file : fileList) {
-            str += file.getName() + "/";
-        }
-        return str;
     }
 
 }

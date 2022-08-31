@@ -14,33 +14,6 @@ public class Client {
     private static DataOutputStream out;
     private static DataInputStream in;
 
-    private static void receiveFile() throws Exception {
-
-        Date date = new Date();
-        long startTime = date.getTime();
-
-        String FILE_NAME = in.readUTF();
-        long FILE_SIZE = in.readLong();
-
-        BufferedInputStream bis = new BufferedInputStream(in);
-
-        System.out.println("Receiving File...");
-        FileOutputStream fos = new FileOutputStream(FILE_NAME);
-        byte[] bytes = new byte[BUFFER_SIZE];
-        long count = FILE_SIZE;
-        while (count > 0) {
-            int recieved = bis.read(bytes);
-            count -= recieved;
-            fos.write(bytes, 0, recieved);
-        }
-
-        fos.close();
-        date = new Date();
-        long endTime = date.getTime();
-
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime - startTime) + " ms");
-    }
-
     public static void main(String[] args) {
 
         try {
@@ -68,6 +41,8 @@ public class Client {
                     System.out.println("!! Invalid File Number !!");
                 }
 
+                System.out.println(" ---------------------------------");
+
             }
         } catch (IOException e) {
             System.err.println("Couldn't connect to " +
@@ -94,6 +69,33 @@ public class Client {
         }
         System.out.println("  [0] - Exit");
         System.out.println(" ---------------------------------");
+    }
+
+    private static void receiveFile() throws Exception {
+
+        Date date = new Date();
+        long startTime = date.getTime();
+
+        String FILE_NAME = in.readUTF();
+        long FILE_SIZE = in.readLong();
+
+        BufferedInputStream bis = new BufferedInputStream(in);
+
+        System.out.println("Receiving File...");
+        FileOutputStream fos = new FileOutputStream(FILE_NAME);
+        byte[] bytes = new byte[BUFFER_SIZE];
+        long count = FILE_SIZE;
+        while (count > 0) {
+            int recieved = bis.read(bytes);
+            count -= recieved;
+            fos.write(bytes, 0, recieved);
+        }
+
+        fos.close();
+        date = new Date();
+        long endTime = date.getTime();
+
+        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime - startTime) + " ms");
     }
 
 }
