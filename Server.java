@@ -10,17 +10,19 @@ public class Server {
 
     public static void main(String[] args) throws IOException {
 
+        //เปิด Server เพื่อเตรียมการเชื่อมต่อ
         ServerSocket ss = new ServerSocket(PORT_NUMBER);
         Logger.printLog("Server created at localhost:" + PORT_NUMBER);
 
-        Socket s = null;
-        int clientNumber = 1;
+        //รอคำร้องขอการเชื่อมต่อจากฝั่ง Client
+        Socket s = null; 
+        int clientNumber = 1; //หมายเลข Client ที่มาทำการเชื่อมต่อ
         boolean isRunning = true;
         while (isRunning) {
             try {
-                s = ss.accept();
-                Thread t = new ClientHandler(s, s.getInputStream(), s.getOutputStream(), clientNumber++);
-                t.start();
+                s = ss.accept(); //สร้างช่องทางการเชื่อมต่อ
+                Thread t = new ClientHandler(s, s.getInputStream(), s.getOutputStream(), clientNumber++); //สร้าง Thread
+                t.start(); // สั่งให้ Thread เริ่มทำงาน
             }
 
             catch (Exception e) {
@@ -43,40 +45,41 @@ class ClientHandler extends Thread {
     private DataInputStream in;
     private int clientNumber;
 
-    private final String FILE_STORAGE = "./resources/";
+    private final String FILE_STORAGE = "./resources/"; // โฟลเดอร์ที่ใช้เก็บไฟล์ในฝั่ง Server
     private final int THREAD_NUMBER = 9;
     private final int BUFFER_SIZE = 16 * 4096;
 
-    File[] fileList;
+    File[] fileList; 
 
     ClientHandler(Socket socket, InputStream is, OutputStream os, int clientNumber) {
         s = socket;
         this.is = is;
         this.os = os;
         this.clientNumber = clientNumber;
-        fileList = new File(FILE_STORAGE).listFiles();
+        fileList = new File(FILE_STORAGE).listFiles(); // methode ที่บอกว่าในว่ามีไฟล์อะไรบ้างที่พร้อมให้ใช้งาน
     }
 
     public void run() {
 
         try {
-            socketAddress = s.getInetAddress().toString();
+            socketAddress = s.getInetAddress().toString(); 
             out = new DataOutputStream(os);
             in = new DataInputStream(is);
 
-            Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Connected");
-            out.writeUTF("Connected to server");
-            out.writeUTF(getFileList());
+            Logger.printLog("Client " + clientNumber + " [" + socketAddress + "] Connected"); // แสดง(ฝั่งServer) ว่ามีการเชื่อมต่อของ Client ตัวไหน
+            out.writeUTF("Connected to server"); //ส่งข้อความไปแสดงผลบนฝั่งของ Client
+            out.writeUTF(getFileList()); // ส่ง list ของไฟล์ไปแสดงผลบนฝั่ง Client
 
             int index = -1;
 
-            // Socket I/O Loop
-            while (true) {
-                index = in.readInt();
-                if (index <= fileList.length) {
+            // Socket I/O Loop 
+            // กระบวนการส่งไฟล์ไปให้ Client
+            while (true) {  
+                index = in.readInt(); // รับค่า index จากฝั่ง Client ว่าต้องการไฟล์ไหนใน Server
+                if (index <= fileList.length) { // กระบวนการส่งไฟล์ไปตามที่ Client ร้องขอ
                     sendFile(fileList[index - 1].getName());
                 } else {
-                    Logger.printLog("Invalid file index");
+                    Logger.printLog("Invalid file index"); // กรณีที่ไม่มีไฟล์ที่ Client ร้องขอ
                 }
             }
 
@@ -95,7 +98,7 @@ class ClientHandler extends Thread {
 
     }
 
-    private String getFileList() {
+    private String getFileList() { // ฟังก์ชันเพื่อนำไปใช้แสดงว่ามีไฟล์อะไรบ้างโดยใช้เทคนิคการต่อ String โดยมี "/" เป็นตัวขั้นแต่ล่ะไฟล์
         String str = "";
         for (File file : fileList) {
             str += file.getName() + "/";
@@ -103,8 +106,8 @@ class ClientHandler extends Thread {
         return str;
     }
 
-    class ByteSender extends Thread {
-
+    class ByteSender extends Thread { // (ข้ามได้)กระบวนการที่จะนำไปใช้ต่อสำหรับการส่งไฟล์แบบ Multi-Thread
+ 
         private byte[] b;
 
         ByteSender(byte[] b) {
@@ -123,20 +126,23 @@ class ClientHandler extends Thread {
 
     }
 
-    private boolean sendFile(String fileName) {
+    private boolean sendFile(String fileName) { // การส่งไฟล์แบบ 1 Thread
         try {
-            File file = new File(FILE_STORAGE + fileName);
-            InputStream fin = new FileInputStream(file);
-            out.writeUTF(fileName);
-            out.writeLong(file.length());
-            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to Client " + clientNumber);
+            File file = new File(FILE_STORAGE + fileName); // เลือกไฟล์ที่ต้องการ
+            InputStream fin = new FileInputStream(file); //อ่านไฟล์จาก Disk มาไว้ใน RAM
+            out.writeUTF(fileName); // ส่งชื่อไฟล์ไปให้ฝั่ง Client
+            out.writeLong(file.length()); // ส่งขนาดของไฟล์ไปให้ฝั่ง Client
+            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to Client " + clientNumber); // แสดงสถานะการส่ง (ฝั่ง Server)
             byte[] bytes = new byte[BUFFER_SIZE];
             int count = 0;
-            while ((count = fin.read(bytes)) > 0) {
+            while ((count = fin.read(bytes)) > 0) { 
                 out.write(bytes, 0, count);
+                // อ่านไฟล์ไปเก็บไว้ใน bytes  หลักจากนั้นจะได้ขนาดจำนวนของ bytes ที่อ่านได้กลับมา เพื่อนำไปเก็บไว้ใน count 
+                // count มีเพื่อบอกว่าอ่าน bytes ไปได้จำนวนเท่าไหร่
+                // หลังจากนั้นส่งข้อมูล bytes ที่อ่านได้ไปให้ฝั่ง Client เป็น Loop วนไปเรื่อยๆ จนกว่าจะอ่านถึง Bytes สุดท้ายของไฟล์
             }
-            fin.close();
-            Logger.printLog(fileName + " has been sent to Client " + clientNumber);
+            fin.close(); // จบกระบวนการ การส่งไฟล์ไปให้ Client
+            Logger.printLog(fileName + " has been sent to Client " + clientNumber); // แสดงสถานะว่าส่งเสร็จแล้ว (ฝั่ง Server)
             return true;
         } catch (Exception e) {
             Logger.printLog("!! Socket Error !! " + e.getMessage());
@@ -145,7 +151,7 @@ class ClientHandler extends Thread {
 
     }
 
-    private boolean sendFileThreaded(String fileName) {
+    private boolean sendFileThreaded(String fileName) { // การส่งแแบบ Multi-Thread
         try {
             File file = new File(FILE_STORAGE + fileName);
             FileInputStream fin = new FileInputStream(file);
@@ -186,7 +192,7 @@ class ClientHandler extends Thread {
 
 }
 
-class Logger {
+class Logger { // ฟังก์ชันที่ใช้จัดการ format เวลา
     public static void printLog(Object message) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
