@@ -2,7 +2,7 @@
 
 !./build/*
 !./resources
-!./utils
+!./utils/*
 !.gitignore
 !Client.java
 !Server.java
