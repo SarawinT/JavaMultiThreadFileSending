@@ -2,7 +2,8 @@
 
 !./build/*
 !./resources
-!./utils/*
+!./utils/ConsoleColors.java
+!./utils/ConsoleColors.class
 !.gitignore
 !Client.java
 !Server.java
