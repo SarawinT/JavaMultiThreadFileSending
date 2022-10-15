@@ -4,10 +4,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-
 import utils.ConsoleColors;
-
 import java.io.*;
 
 public class Server {
@@ -21,7 +18,7 @@ public class Server {
         ServerSocketChannel ssc = ServerSocketChannel.open();
         ssc.socket().bind(new InetSocketAddress(PORT_NUMBER_CHANNEL));
 
-        Logger.printLog("\u001B[32mServer created at localhost:" + PORT_NUMBER + "\u001B[0m");
+        Logger.printLog(ConsoleColors.GREEN + "Server created at localhost:" + PORT_NUMBER + ConsoleColors.RESET);
 
         Socket s = null;
         SocketChannel sc = null;
@@ -31,6 +28,7 @@ public class Server {
             try {
                 s = ss.accept();
                 sc = ssc.accept();
+                sc.configureBlocking(false);
                 Thread t = new ClientHandler(s, s.getInputStream(), s.getOutputStream(), sc, clientNumber++);
                 t.start();
             }
@@ -122,6 +120,27 @@ class ClientHandler extends Thread {
         return str;
     }
 
+    private boolean sendFile(String fileName) throws Exception {
+        long startTime = System.currentTimeMillis();
+        File file = new File(FILE_STORAGE + fileName);
+        InputStream fin = new FileInputStream(file);
+        out.writeUTF(fileName);
+        out.writeLong(file.length());
+        Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
+                + "Client " + clientNumber + ConsoleColors.RESET);
+        byte[] bytes = new byte[BUFFER_SIZE];
+        int count = 0;
+        while ((count = fin.read(bytes)) > 0) {
+            out.write(bytes, 0, count);
+        }
+        fin.close();
+        long endTime = System.currentTimeMillis();
+        Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
+                + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
+        return true;
+
+    }
+
     public void sendFileZeroCopy(String fileName) throws Exception {
         long startTime = System.currentTimeMillis();
         File file = new File(FILE_STORAGE + fileName);
@@ -142,27 +161,6 @@ class ClientHandler extends Thread {
         Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
                 + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
         fis.close();
-
-    }
-
-    private boolean sendFile(String fileName) throws Exception {
-        long startTime = System.currentTimeMillis();
-        File file = new File(FILE_STORAGE + fileName);
-        InputStream fin = new FileInputStream(file);
-        out.writeUTF(fileName);
-        out.writeLong(file.length());
-        Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
-                + "Client " + clientNumber + ConsoleColors.RESET);
-        byte[] bytes = new byte[BUFFER_SIZE];
-        int count = 0;
-        while ((count = fin.read(bytes)) > 0) {
-            out.write(bytes, 0, count);
-        }
-        fin.close();
-        long endTime = System.currentTimeMillis();
-        Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
-                + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
-        return true;
 
     }
 

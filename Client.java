@@ -122,14 +122,15 @@ public class Client {
         FileOutputStream fos = new FileOutputStream(FILE_NAME);
         destination = fos.getChannel();
         long start = 0;
-        while (start < FILE_SIZE) {
-            long received = destination.transferFrom(sc, start, FILE_SIZE - start);
-            System.out.println(received);
-            if (received <= 0) {
-                break;
-            }
-            start += received;
-        }
+        // while (start < FILE_SIZE) {
+        //     long received = destination.transferFrom(sc, start, FILE_SIZE - start);
+        //     System.out.println(received);
+        //     if (received <= 0) {
+        //         break;
+        //     }
+        //     start += received;
+        // }
+        destination.transferFrom(sc, 0, FILE_SIZE);
 
         long endTime = System.currentTimeMillis();
         System.out.println("File Received [" + FILE_SIZE + " bytes] - Elapsed Time " + (endTime - startTime) + " ms");
