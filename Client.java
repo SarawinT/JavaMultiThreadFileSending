@@ -51,7 +51,7 @@ public class Client {
                     if (receiveMethod == 1) {
                         receiveFile();
                     } else {
-                        recieveFileZeroCopy();
+                        receiveFileZeroCopy();
                     }
                 } else {
                     System.out.println("!! Invalid File Number !!");
@@ -102,18 +102,18 @@ public class Client {
         byte[] bytes = new byte[BUFFER_SIZE];
         long count = FILE_SIZE;
         while (count > 0) {
-            int recieved = bis.read(bytes);
-            count -= recieved;
-            fos.write(bytes, 0, recieved);
+            int received = bis.read(bytes);
+            count -= received;
+            fos.write(bytes, 0, received);
         }
 
         fos.close();
         long endTime = System.currentTimeMillis();
 
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime - startTime) + " ms");
+        System.out.println("File Received [" + FILE_SIZE + " bytes] - Elapsed Time " + (endTime - startTime) + " ms");
     }
 
-    private static void recieveFileZeroCopy() throws Exception {
+    private static void receiveFileZeroCopy() throws Exception {
         System.out.println("Receiving File...");
         long startTime = System.currentTimeMillis();
         FileChannel destination = null;
@@ -124,6 +124,7 @@ public class Client {
         long start = 0;
         while (start < FILE_SIZE) {
             long received = destination.transferFrom(sc, start, FILE_SIZE - start);
+            System.out.println(received);
             if (received <= 0) {
                 break;
             }
@@ -131,7 +132,7 @@ public class Client {
         }
 
         long endTime = System.currentTimeMillis();
-        System.out.println("File Recieved [" + FILE_SIZE + " bytes] - Elasped Time " + (endTime - startTime) + " ms");
+        System.out.println("File Received [" + FILE_SIZE + " bytes] - Elapsed Time " + (endTime - startTime) + " ms");
         destination.close();
         fos.close();
 

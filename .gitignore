@@ -1,9 +1,5 @@
-*
-
-!./build/*
-!./resources
-!./utils/ConsoleColors.java
-!./utils/ConsoleColors.class
-!.gitignore
-!Client.java
-!Server.java
+*.iso
+*.txt
+*.class
+*.pdf
+resources/*

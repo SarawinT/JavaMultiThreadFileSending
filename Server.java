@@ -57,7 +57,6 @@ class ClientHandler extends Thread {
     private int clientNumber;
 
     private final String FILE_STORAGE = "./resources/";
-    private final int THREAD_NUMBER = 9;
     private final int BUFFER_SIZE = 8388608;
 
     File[] fileList;
@@ -123,114 +122,48 @@ class ClientHandler extends Thread {
         return str;
     }
 
-    class ByteSender extends Thread {
-
-        private byte[] b;
-
-        ByteSender(byte[] b) {
-            this.b = b;
+    public void sendFileZeroCopy(String fileName) throws Exception {
+        long startTime = System.currentTimeMillis();
+        File file = new File(FILE_STORAGE + fileName);
+        Logger.printLog(
+                "Sending Zero Copy " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
+                        + "Client " + clientNumber + ConsoleColors.RESET);
+        out.writeUTF(fileName);
+        out.writeLong(file.length());
+        FileInputStream fis = new FileInputStream(FILE_STORAGE + fileName);
+        FileChannel source = fis.getChannel();
+        long totalSent = 0;
+        while (totalSent < file.length()) {
+            long sent = source.transferTo(totalSent,
+                    file.length() - totalSent, sc);
+            totalSent += sent;
         }
-
-        @Override
-        public void run() {
-            try {
-                out.write(b);
-                b = null;
-            } catch (Exception e) {
-                Logger.printLog(e);
-            }
-        }
+        long endTime = System.currentTimeMillis();
+        Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
+                + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
+        fis.close();
 
     }
 
-    public void sendFileZeroCopy(String fileName) throws IOException {
-        try {
-            File file = new File(FILE_STORAGE + fileName);
-            Logger.printLog(
-                    "Sending Zero Copy " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
-                            + "Client " + clientNumber + ConsoleColors.RESET);
-            out.writeUTF(fileName);
-            out.writeLong(file.length());
-            FileInputStream fis = new FileInputStream(FILE_STORAGE + fileName);
-            FileChannel source = fis.getChannel();
-            source.transferTo(0, file.length(), sc);
-            long totalSent = 0;
-            while (totalSent < file.length()) {
-                long sent = source.transferTo(totalSent,
-                        file.length() - totalSent, sc);
-                System.out.println(sent);
-                totalSent += sent;
-            }
-            Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
-                    + ConsoleColors.RESET);
-            fis.close();
-        } catch (Exception e) {
-            throw e;
+    private boolean sendFile(String fileName) throws Exception {
+        long startTime = System.currentTimeMillis();
+        File file = new File(FILE_STORAGE + fileName);
+        InputStream fin = new FileInputStream(file);
+        out.writeUTF(fileName);
+        out.writeLong(file.length());
+        Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
+                + "Client " + clientNumber + ConsoleColors.RESET);
+        byte[] bytes = new byte[BUFFER_SIZE];
+        int count = 0;
+        while ((count = fin.read(bytes)) > 0) {
+            out.write(bytes, 0, count);
         }
+        fin.close();
+        long endTime = System.currentTimeMillis();
+        Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
+                + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
+        return true;
 
-    }
-
-    private boolean sendFile(String fileName) {
-        try {
-            File file = new File(FILE_STORAGE + fileName);
-            InputStream fin = new FileInputStream(file);
-            out.writeUTF(fileName);
-            out.writeLong(file.length());
-            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
-                    + "Client " + clientNumber + ConsoleColors.RESET);
-            byte[] bytes = new byte[BUFFER_SIZE];
-            int count = 0;
-            while ((count = fin.read(bytes)) > 0) {
-                out.write(bytes, 0, count);
-            }
-            fin.close();
-            Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
-                    + ConsoleColors.RESET);
-            return true;
-        } catch (Exception e) {
-            Logger.printErrorLog("!! Socket Error !! " + e.getMessage());
-            return false;
-        }
-
-    }
-
-    private boolean sendFileThreaded(String fileName) {
-        try {
-            File file = new File(FILE_STORAGE + fileName);
-            FileInputStream fin = new FileInputStream(file);
-            out.writeUTF(fileName);
-            out.writeLong(file.length());
-            Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to Client " + clientNumber);
-
-            final long FILE_SIZE = file.length();
-            final long SLICE_SIZE = FILE_SIZE / THREAD_NUMBER;
-            final long LEFT_OVER = FILE_SIZE % THREAD_NUMBER;
-
-            byte[] fileBytes = new byte[(int) SLICE_SIZE];
-
-            for (int i = 0; i < THREAD_NUMBER; i++) {
-                int read = fin.read(fileBytes);
-                byte[] b = new byte[read];
-                b = Arrays.copyOf(fileBytes, read);
-                Thread bs = new ByteSender(b);
-                bs.start();
-                bs.sleep(i);
-            }
-            if (LEFT_OVER != 0) {
-                int read = fin.read(fileBytes);
-                byte[] b = new byte[read];
-                b = Arrays.copyOf(fileBytes, read);
-                Thread bs = new ByteSender(b);
-                bs.start();
-            }
-
-            fin.close();
-            Logger.printLog(fileName + " has been sent to Client " + clientNumber);
-            return true;
-        } catch (Exception e) {
-            Logger.printLog("!! Socket Error !! " + e);
-            return false;
-        }
     }
 
 }
