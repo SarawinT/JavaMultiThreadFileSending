@@ -9,7 +9,7 @@ import utils.ConsoleColors;
 
 public class Client {
 
-    private static final String HOST_NAME = "localhost";
+    private static String HOST_NAME = "localhost";
     private static final int PORT_NUMBER = 8080;
     private static final int PORT_NUMBER_CHANNEL = 8081;
     private static final int BUFFER_SIZE = 8388608;
@@ -22,6 +22,10 @@ public class Client {
 
     public static void main(String[] args) {
 
+        if (args.length > 0) {
+            HOST_NAME = args[0];
+        }
+
         try {
             s = new Socket(HOST_NAME, PORT_NUMBER);
             SocketAddress socketAddress = new InetSocketAddress("localhost", PORT_NUMBER_CHANNEL);
@@ -32,7 +36,8 @@ public class Client {
             out = new DataOutputStream(s.getOutputStream());
 
             String status = in.readUTF();
-            System.out.println(ConsoleColors.GREEN + status + ConsoleColors.RESET);
+            System.out.println(
+                    ConsoleColors.GREEN + status + ConsoleColors.RESET + " : " + HOST_NAME + ":" + PORT_NUMBER);
             String fileListStr = in.readUTF();
             fileList = initFileList(fileListStr);
             while (true) {
@@ -122,6 +127,7 @@ public class Client {
         FileOutputStream fos = new FileOutputStream(FILE_NAME);
         destination = fos.getChannel();
         long start = 0;
+
         while (start < FILE_SIZE) {
             long received = destination.transferFrom(sc, start, FILE_SIZE - start);
             if (received <= 0) {
@@ -138,3 +144,5 @@ public class Client {
     }
 
 }
+
+

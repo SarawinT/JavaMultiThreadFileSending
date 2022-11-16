@@ -4,6 +4,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
 import utils.ConsoleColors;
 import java.io.*;
 
@@ -120,7 +121,7 @@ class ClientHandler extends Thread {
         return str;
     }
 
-    private boolean sendFile(String fileName) throws Exception {
+    private void sendFile(String fileName) throws Exception {
         long startTime = System.currentTimeMillis();
         File file = new File(FILE_STORAGE + fileName);
         InputStream fin = new FileInputStream(file);
@@ -128,20 +129,18 @@ class ClientHandler extends Thread {
         out.writeLong(file.length());
         Logger.printLog("Sending " + fileName + " [" + file.length() + " bytes] to " + ConsoleColors.YELLOW
                 + "Client " + clientNumber + ConsoleColors.RESET);
-        byte[] bytes = new byte[BUFFER_SIZE];
+        byte[] buffer = new byte[BUFFER_SIZE];
         int count = 0;
-        while ((count = fin.read(bytes)) > 0) {
-            out.write(bytes, 0, count);
+        while ((count = fin.read(buffer)) > 0) {
+            out.write(buffer, 0, count);
         }
         fin.close();
         long endTime = System.currentTimeMillis();
         Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
                 + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
-        return true;
-
     }
 
-    public void sendFileZeroCopy(String fileName) throws Exception {
+    private void sendFileZeroCopy(String fileName) throws Exception {
         long startTime = System.currentTimeMillis();
         File file = new File(FILE_STORAGE + fileName);
         Logger.printLog(
@@ -149,8 +148,8 @@ class ClientHandler extends Thread {
                         + "Client " + clientNumber + ConsoleColors.RESET);
         out.writeUTF(fileName);
         out.writeLong(file.length());
-        FileInputStream fis = new FileInputStream(FILE_STORAGE + fileName);
-        FileChannel source = fis.getChannel();
+        FileInputStream fin = new FileInputStream(FILE_STORAGE + fileName);
+        FileChannel source = fin.getChannel();
         long totalSent = 0;
         while (totalSent < file.length()) {
             long sent = source.transferTo(totalSent,
@@ -160,7 +159,7 @@ class ClientHandler extends Thread {
         long endTime = System.currentTimeMillis();
         Logger.printLog(fileName + " has been sent to " + ConsoleColors.YELLOW + "Client " + clientNumber
                 + ConsoleColors.RESET + " - Elapsed Time " + (endTime - startTime) + " ms");
-        fis.close();
+        fin.close();
 
     }
 
