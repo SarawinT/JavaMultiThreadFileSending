@@ -19,7 +19,8 @@ public class Server {
         ServerSocketChannel ssc = ServerSocketChannel.open();
         ssc.socket().bind(new InetSocketAddress(PORT_NUMBER_CHANNEL));
 
-        Logger.printLog(ConsoleColors.GREEN + "Server created at localhost:" + PORT_NUMBER + ConsoleColors.RESET);
+        Logger.printLog(ConsoleColors.GREEN + "Server created at " + ss.getInetAddress() + ":" + PORT_NUMBER
+                + ConsoleColors.RESET);
 
         Socket s = null;
         SocketChannel sc = null;

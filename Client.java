@@ -26,9 +26,11 @@ public class Client {
             HOST_NAME = args[0];
         }
 
+        System.out.println(HOST_NAME);
+
         try {
             s = new Socket(HOST_NAME, PORT_NUMBER);
-            SocketAddress socketAddress = new InetSocketAddress("localhost", PORT_NUMBER_CHANNEL);
+            SocketAddress socketAddress = new InetSocketAddress(HOST_NAME, PORT_NUMBER_CHANNEL);
             sc = SocketChannel.open();
             sc.connect(socketAddress);
             Scanner scan = new Scanner(System.in);
@@ -67,7 +69,7 @@ public class Client {
             }
         } catch (IOException e) {
             System.err.println(ConsoleColors.RED + "Couldn't connect to " +
-                    HOST_NAME + ":" + PORT_NUMBER + ConsoleColors.RESET);
+                    HOST_NAME + ":" + PORT_NUMBER + "(" + e + ")" + ConsoleColors.RESET);
             System.exit(1);
         } catch (Exception e) {
             if (e.getMessage().equals("Connection reset")) {
@@ -144,5 +146,3 @@ public class Client {
     }
 
 }
-
-
