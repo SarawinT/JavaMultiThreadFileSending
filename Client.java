@@ -50,7 +50,7 @@ public class Client {
                     s.close();
                     scan.close();
                     break;
-                } else if (index <= fileList.length) {
+                } else if (index <= fileList.length && index > 0) {
                     out.writeInt(index);
                     System.out.print("Enter downloading method [1] - Normal / [2] - Zero Copy : ");
                     int receiveMethod = scan.nextInt();
